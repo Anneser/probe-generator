@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from Bio.Seq import Seq
 from datetime import date
 from src.utils import maximize_probe_set
@@ -9,11 +10,11 @@ from Bio.SeqUtils import MeltingTemp as mt
 def get_amplifier(ampl):
     """Return amplifier initiator sequences and spacers."""
     amplifiers = {
-        "B1":  ("aa", "ta", "GAGGAGGGCAGCAAACGG", "GAAGAGTCTTCCTTTACG"),
-        "B2":  ("aa", "aa", "CCTCGTAAATCCTCATCA", "ATCATCCAGTAAACCGCC"),
-        "B3":  ("tt", "tt", "GTCCCTGCCTCTATATCT", "CCACTCAACTTTAACCCG"),
-        "B4":  ("aa", "at", "CCTCAACCTACCTCCAAC", "TCTCACCATATTCGCTTC"),
-        "B5":  ("aa", "aa", "CTCACTCCCAATCTCTAT", "CTACCCTACAAATCCAAT"),
+        "B1":  ("aa", "ta", "GAGGAGGGCAGCAAACGG", "GAAGAGTCTTCCTTTACG"),  # double-checked
+        "B2":  ("aa", "aa", "CCTCGTAAATCCTCATCA", "ATCATCCAGTAAACCGCC"),  # double-checked
+        "B3":  ("tt", "tt", "GTCCCTGCCTCTATATCT", "CCACTCAACTTTAACCCG"),  # double-checked
+        "B4":  ("aa", "at", "CCTCAACCTACCTCCAAC", "TCTCACCATATTCGCTTC"),  # double-checked
+        "B5":  ("aa", "aa", "CTCACTCCCAATCTCTAT", "CTACCCTACAAATCCAAT"),  # double-checked
         "B7":  ("ww", "ww", "CTTCAACCTCCACCTACC", "TCCAATCCCTACCCTCAC"),
         "B9":  ("ww", "ww", "CACGTATCTACTCCACTC", "TCAGCACACTCCCAACCC"),
         "B10": ("ww", "ww", "CCTCAAGATACTCCTCTA", "CCTACTCGACTACCCTAG"),
@@ -76,19 +77,21 @@ def generate_probes(positions, pause, cdna_len, min_spacing=2):
     return selected
 
 
-def downsample_probes(probe_coords, maxprobe, num_requested):
+def downsample_probes(probe_coords, maxprobe, num_requested, scores=None):
     """
-    Limits the number of probe pairs to a given number by downsampling uniformly.
+    Limits the number of probe pairs to a given number by downsampling uniformly,
+    maintaining even spacing and favoring higher-scoring probes when conflicts arise.
 
     Parameters:
-        probe_coords (list of tuple): List of (start, end) positions of valid probes.
+        probe_coords (list of tuple): List of (start, end) probe coordinates.
         maxprobe (str): 'y' to enable limiting, 'n' to return full list.
-        num_requested (int): Desired number of probes. If 0, defaults to 33.
+        num_requested (int): Desired number of probes. Defaults to 33 if 0.
+        scores (list of float, optional): Composite score for each probe.
 
     Returns:
-        list of tuple: Downsampled list of probe coordinate pairs.
+        list of tuple: Downsampled list of (start, end) probe coordinates.
     """
-    if maxprobe != 'y':
+    if maxprobe != 'y' or not probe_coords:
         return probe_coords
 
     total_probes = len(probe_coords)
@@ -98,10 +101,38 @@ def downsample_probes(probe_coords, maxprobe, num_requested):
         print(f"There were fewer than {num_to_keep} pairs. No downsampling applied.")
         return probe_coords
 
-    # Evenly spaced indices across the list
-    indices = np.linspace(0, total_probes - 1, num=num_to_keep, dtype=int)
-    reduced = [probe_coords[i] for i in indices]
-    return reduced
+    # Default scores = flat
+    if scores is None:
+        scores = [1.0] * total_probes
+
+    # Attach scores to coordinates and sort by position
+    probes = list(zip(probe_coords, scores))
+    probes = sorted(probes, key=lambda x: x[0][0])  # sort by start coordinate
+
+    total_length = probes[-1][0][1]
+    ideal_centers = np.linspace(0, total_length, num=num_to_keep)
+
+    selected = []
+    used_indices = set()
+
+    for ideal in ideal_centers:
+        # Candidates not yet used, within a search window around the ideal center
+        candidates = []
+        for i, ((start, end), score) in enumerate(probes):
+            if i in used_indices:
+                continue
+            center = (start + end) / 2
+            dist = abs(center - ideal)
+            candidates.append((dist, -score, i))  # negative score = prioritize higher values
+
+        # Sort by closest center, then highest score
+        if candidates:
+            best = sorted(candidates)[0]
+            best_idx = best[2]
+            used_indices.add(best_idx)
+            selected.append(probes[best_idx][0])  # append (start, end)
+
+    return selected
 
 
 def format_output(probe_data, fullseq, cdna_len, amplifier_id, pause, gene_name, upinit, dninit, upspc, dnspc):
@@ -237,14 +268,12 @@ def smart_probe_selector(
         seq_5p = fullseq[start: start + 25]
         seq_3p = fullseq[start + 27: end]
 
-        # tm_5p = mt.Tm_Wallace(seq_5p)
-        # tm_3p = mt.Tm_Wallace(seq_3p)
         tm_5p = mt.Tm_NN(seq_5p, nn_table=mt.DNA_NN4, Na=50, dnac1=50, dnac2=50)
         tm_3p = mt.Tm_NN(seq_3p, nn_table=mt.DNA_NN4, Na=50, dnac1=50, dnac2=50)
         gc_5p = 100 * (seq_5p.count("G") + seq_5p.count("C")) / 25
         gc_3p = 100 * (seq_3p.count("G") + seq_3p.count("C")) / 25
 
-        # Hard bounds
+        # Hard cutoffs
         if not (tm_bounds[0] <= tm_5p <= tm_bounds[1] and tm_bounds[0] <= tm_3p <= tm_bounds[1]):
             return -float('inf')
         if not (gc_bounds[0] <= gc_5p <= gc_bounds[1] and gc_bounds[0] <= gc_3p <= gc_bounds[1]):
@@ -252,16 +281,10 @@ def smart_probe_selector(
 
         tm_score = 1 - (abs(tm_5p - tm_target) + abs(tm_3p - tm_target)) / 40
         gc_score = 1 - (abs(gc_5p - gc_target) + abs(gc_3p - gc_target)) / 100
-
-        in_orf_5p = orf_start_rc <= start <= orf_end_rc
-        in_orf_3p = orf_start_rc <= end <= orf_end_rc
-        orf_score = (1 if in_orf_5p else 0) + (1 if in_orf_3p else 0)
-
-        center = (start + end) / 2
-        normalized_center = center / seq_len
-        spread_score = 1 - abs(normalized_center - 0.5)
-
-        return tm_score + gc_score + orf_score + spread_score
+        orf_score = (1.5 if orf_start_rc <= start <= orf_end_rc else 0) + \
+                    (1.5 if orf_start_rc <= end <= orf_end_rc else 0)
+        
+        return tm_score + gc_score + orf_score 
 
     def prepare_candidates():
         return [(s, e, score_region(s, e)) for s, e in valid_regions if score_region(s, e) > -float('inf')]
@@ -271,41 +294,47 @@ def smart_probe_selector(
         tm_bounds = tm_b
         gc_bounds = gc_b
         scored = prepare_candidates()
-        return select_probes_wisp(scored, spacing=spacing, max_count=max_count)
+        return select_probes_wisp(scored, spacing=spacing, max_count=max_count), scored
 
-    # Attempt 1: strict bounds
-    selected = try_with_bounds(tm_bounds, gc_bounds)
+    # Attempt 1
+    selected, all_scored = try_with_bounds(tm_bounds, gc_bounds)
     if len(selected) >= int(0.8 * max_count):
-        return selected
+        pass
+    else:
+        # Attempt 2
+        relaxed_tm = (tm_bounds[0] - 2, tm_bounds[1] + 2)
+        relaxed_gc = (gc_bounds[0] - 5, gc_bounds[1] + 5)
+        selected, all_scored = try_with_bounds(relaxed_tm, relaxed_gc)
+        if len(selected) < int(0.8 * max_count):
+            # Attempt 3
+            relaxed_tm = (tm_bounds[0] - 5, tm_bounds[1] + 5)
+            relaxed_gc = (gc_bounds[0] - 10, gc_bounds[1] + 10)
+            selected, all_scored = try_with_bounds(relaxed_tm, relaxed_gc)
 
-    # Attempt 2: relaxed bounds
-    relaxed_tm_1 = (tm_bounds[0] - 2, tm_bounds[1] + 2)
-    relaxed_gc_1 = (gc_bounds[0] - 5, gc_bounds[1] + 5)
-    selected = try_with_bounds(relaxed_tm_1, relaxed_gc_1)
-    if len(selected) >= int(0.8 * max_count):
-        return selected
+    # Fallback to greedy if too few
+    if len(selected) < int(0.8 * max_count):
+        print("Falling back to greedy selection due to low probe yield.")
+        candidates = prepare_candidates()
+        candidates.sort(key=lambda x: x[2], reverse=True)
+        selected = []
+        last_end = -spacing
+        for start, end, score in candidates:
+            if start >= last_end + spacing:
+                selected.append((start, end))
+                last_end = end
+            if len(selected) >= max_count:
+                break
+        score_map = { (s, e): sc for s, e, sc in candidates }
 
-    # Attempt 3: more relaxed bounds
-    relaxed_tm_2 = (tm_bounds[0] - 5, tm_bounds[1] + 5)
-    relaxed_gc_2 = (gc_bounds[0] - 10, gc_bounds[1] + 10)
-    selected = try_with_bounds(relaxed_tm_2, relaxed_gc_2)
-    if len(selected) >= int(0.8 * max_count):
-        return selected
+    else:
+        score_map = { (s, e): sc for s, e, sc in all_scored }
 
-    # Final fallback: greedy selection
-    print("Falling back to greedy selection due to low probe yield.")
-    candidates = prepare_candidates()
-    candidates.sort(key=lambda x: x[2], reverse=True)
-    selected = []
-    last_end = -spacing
-    for start, end, score in candidates:
-        if start >= last_end + spacing:
-            selected.append((start, end))
-            last_end = end
-        if len(selected) >= max_count:
-            break
+    # Optional downsampling
+    if len(selected) > max_count:
+        score_map = [score_map[(s, e)] for s, e in selected]
+        selected = downsample_probes(selected, maxprobe='y', num_requested=max_count, scores=score_map)
 
-    return selected
+    return selected, score_map
 
 
 def maker(
@@ -336,9 +365,6 @@ def maker(
         probe_data (dict): indexed probe metadata
     """
 
-    print("\n\nHCR3.0 Probe Maker Output")
-    print("DOI: https://doi.org/10.5281/zenodo.3871970\n")
-
     # Convert to antisense (target)
     fullseq = str(Seq(fullseq).reverse_complement())
     cdna_len = len(fullseq)
@@ -347,17 +373,23 @@ def maker(
     upspc, dnspc, upinit, dninit = get_amplifier(amplifier.upper())
 
     # Step 1: Remove poly-n runs
-    valid_regions = filter_homopolymers(fullseq, polyAT, polyCG)
+    valid_regions = []
+    hpA, hpT = "A"*(polyAT+1), "T"*(polyAT+1)
+    hpC, hpG = "C"*(polyCG+1), "G"*(polyCG+1)
+    for s in range(0, cdna_len - 52):
+        subseq = fullseq[s:s+52]
+        if not any(hp in subseq for hp in [hpA, hpT, hpC, hpG]):
+            valid_regions.append((s, s+52))
 
     # Step 2: Find longest ORF (sense strand)
     sense_seq = str(Seq(fullseq).reverse_complement())
     orf_start, orf_end, _ = find_longest_orf(sense_seq)
 
-    # Step 3: Smart selection of probe regions
-    selected_coords = smart_probe_selector(
+    # Step 3: Smart selection of probe regions with scoring
+    selected_coords, score_map = smart_probe_selector(
         fullseq=fullseq,
         valid_regions=valid_regions,
-        max_count=int(numbr) if maxprobe == 'y' else 33,
+        max_count=999,  # get many and prune later
         orf_range=(orf_start, orf_end),
         spacing=min_spacing,
         tm_bounds=tm_bounds,
@@ -366,35 +398,37 @@ def maker(
         gc_target=gc_target
     )
 
-    # Step 4: Build probe data
+    # Step 4: Downsample to user-specified max
+    selected_coords = downsample_probes(
+        selected_coords,
+        maxprobe=maxprobe,
+        num_requested=numbr,
+        scores=score_map
+    )
+
+    # Step 5: Build probe data
     probe_data = {}
     for i, (start, end) in enumerate(selected_coords):
         seq = fullseq[start:start+25] + "nn" + fullseq[start+27:end]
         probe_data[i] = (start, seq, end)
 
-    # Step 5: Optional BLAST filtering
+    # Step 6: Optional BLAST filtering
     if BlastProbes == 'y':
         probe_seqs = {i: v[1] for i, v in probe_data.items()}
         accepted, rejected, good_df, bad_df = blast_probes_to_db(probe_seqs, db)
 
         if dropout == 'y':
             probe_data = {i: probe_data[i] for i in accepted}
+    else:
+        good_df = pd.DataFrame()
+        bad_df = pd.DataFrame()
 
-        #if show == 'y':
-        #    import streamlit as st
-        #    st.subheader("\U0001F9EC BLAST Results")
-        #    st.write("### Good Matches")
-        #    st.dataframe(good_df)
-        #    if len(bad_df) > 0:
-        #        st.write("### Potential Off-Targets")
-        #        st.dataframe(bad_df)
-
-    # Step 6: Output and visualization formatting
+    # Step 7: Output formatting
     submission_lines, antisense_str, sense_str, probe_data = format_output(
         probe_data, fullseq, cdna_len, amplifier, pause, name, upinit, dninit, upspc, dnspc
     )
 
-    # Step 7: Optional report
+    # Step 8: Optional report
     if report == 'y':
         print("\nRun Summary:")
         print(f"Date: {date.today()}")

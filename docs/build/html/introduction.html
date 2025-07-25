@@ -1,0 +1,156 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Introduction &mdash; Probe Generator 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=e031e9a9"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Maker Module" href="maker.html" />
+    <link rel="prev" title="Welcome to Probe Generator’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Probe Generator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#concept">Concept</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tool-design">Tool Design</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="maker.html">Maker Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="blast_tools.html">Blast Tools Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Probe Generator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Introduction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/introduction.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h1>
+<p>Welcome. If you want to visualize gene expression patterns using hybridization chain reaction (HCR), look no further.
+HCR is a powerful technique developed by Harry Choi during his time at Caltech:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.nature.com/articles/nbt.1692">Programmable in situ amplification for multiplexed imaging of mRNA expression</a> — HCR v1.0</p></li>
+<li><p><a class="reference external" href="https://pubs.acs.org/doi/full/10.1021/nn405717p">Next-Generation in Situ Hybridization Chain Reaction: Higher Gain, Lower Cost, Greater Durability</a> — HCR v2.0</p></li>
+<li><p><a class="reference external" href="https://journals.biologists.com/dev/article/145/12/dev165753/48466/Third-generation-in-situ-hybridization-chain">Third-generation in situ hybridization chain reaction: multiplexed, quantitative, sensitive, versatile, robust</a> — HCR v3.0</p></li>
+</ul>
+<p>By now, his company is pushing the continuous development of the technique and the easiest way to get acquainted with the process is to get in touch with them and get one of the introduction kits. Up until generation v3.0, it was very common for researchers to
+create the probe sets binding to their genes of interest themselves. A great game-changer facilitating this approach was the <a class="reference external" href="https://github.com/rwnull/insitu_probe_generator">insitu-probe-generator</a> by the <a class="reference external" href="https://bduyguozpolat.org/">Özpolat lab</a>.</p>
+<section id="concept">
+<h2>Concept<a class="headerlink" href="#concept" title="Permalink to this heading"></a></h2>
+<p>For the longest time, visualization of gene expression in-situ was performed with either <a class="reference external" href="https://en.wikipedia.org/wiki/Chromogenic_in_situ_hybridization">chromogenic</a> or <a class="reference external" href="https://en.wikipedia.org/wiki/Fluorescence_in_situ_hybridization">fluorescent in-situ hybridization</a>.
+In a nutshell, you would clone a sequence characteristic for a gene of interest. These sequences could, for example, be tagged by an easily recognized molecule (biotin -streptavidin is a classic). First, the probes are added to a fixed tissue sample and hybridize to the sequence of
+interest (if that sequence is expressed). In downstream steps, the tagged molecule is used to start a reaction leading to the amplification of signal, which can then be read out under a microscope.</p>
+<p>HCR invites you to tile your gene of interest with small stretches of probe sequences (50 nt). The probes contain a split inititator sequence both at the 5’ and 3’ end. This inititator sequence is necessary to break up the fluorescent hairpins h1 and h2 that subsequently form
+longer sequences at the bound mRNA of interest, leading to the accumulation of fluorescent probes and thus the build-up of signal indicating the expression of the gene of interest. The only things you need to make it work, are thus:</p>
+<ul class="simple">
+<li><p>a probe set specific to your gene of interest with the probes containing a specific initiator sequence</p></li>
+<li><p>the hairpin set recognizing this initiator sequence</p></li>
+<li><p>a set of buffers (see papers above)</p></li>
+</ul>
+<p>All of this can be ordered via <a class="reference external" href="https://www.molecularinstruments.com/">molecular instruments</a>. However, you can also design the probe set yourself using the tools provided here via IDT oPools.</p>
+</section>
+<section id="tool-design">
+<h2>Tool Design<a class="headerlink" href="#tool-design" title="Permalink to this heading"></a></h2>
+<p>As specified above, there already exists a nice tool to automatically create these probe sets, written by the Özpolat lab. However, this tool requires you to use the terminal or an IDE. Additionally, I always thought it would be nice to get some additional functionalities, such As</p>
+<ul class="simple">
+<li><p>upload of a fastafile with several genes or even just a list of refseq numbers instead of the sequence of only one gene of interest.</p></li>
+<li><p>some control over the sequence coverage and the probe set properties</p></li>
+</ul>
+<p>For now (v0.1), I have implemented the basic probe set logic by the original probe generator and improved it a little bit, more updates to come.</p>
+<ul class="simple">
+<li><p>The sequence is tiled into all possible 52 nt windows, excluding windows containing user-specified homopolymer stretches (e.g., if you want to exclude GGGGGG, you can do that).</p></li>
+<li><p>Each window is now split into two 25 nt parts with a 2 nt spacer in the middle and basic properties such as GC content, Tm and whether the window is within the CDS or in the UTR are computed to create a combined score.</p></li>
+<li><p>A probe set is selected to maximize the number of probes (up to a user-specified maximum) and the combined score of the probes, while overlapping windows are excluded.</p></li>
+<li><p>The resulting probe set can be blasted against a user-provided fasta file to exclude potential off-targets</p></li>
+<li><p>The probe set can be downloaded as a .csv file that can be directly used for submission and ordering at IDT</p></li>
+<li><p>Additionally, the provided sequence can be downloaded as annotated .gb file.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Probe Generator’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="maker.html" class="btn btn-neutral float-right" title="Maker Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Lukas Anneser.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -59,7 +59,7 @@ The **HCR Probe Generator** is a full-featured, browser-based tool to design HCR
 
 ```bash
 # Clone the repo
-$ git clone https://github.com/yourname/hcr-probe-generator
+$ git clone https://github.com/Anneser/probe-generator
 $ cd hcr-probe-generator
 
 # Create virtual environment (recommended)
@@ -77,7 +77,6 @@ $ streamlit run streamlit_app.py
 
 ## 📄 License & Citation
 
-- GPL v3.0 license
 - Based on methodology from:
   - Choi et al., 2018 (HCR v3.0)
   - Wang et al., 2020 (Amplifier sets)
