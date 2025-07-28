@@ -4,7 +4,7 @@ The **HCR Probe Generator** is a full-featured, browser-based tool to design HCR
 
 ---
 
-## 🚀 Features
+## Features
 
 - Accepts any sense-strand cDNA sequence
 - Select from multiple amplifier initiators (B1, B2, ..., B17)
@@ -22,7 +22,7 @@ The **HCR Probe Generator** is a full-featured, browser-based tool to design HCR
 
 ---
 
-## 🧬 Input Parameters
+## Input Parameters
 
 | Field            | Description                                            |
 | ---------------- | ------------------------------------------------------ |
@@ -36,7 +36,7 @@ The **HCR Probe Generator** is a full-featured, browser-based tool to design HCR
 
 ---
 
-## 🧪 BLAST Filtering (Optional)
+## BLAST Filtering (Optional)
 
 - Input any FASTA-formatted transcriptome or gene set
 - BLASTn-short is used internally
@@ -46,7 +46,7 @@ The **HCR Probe Generator** is a full-featured, browser-based tool to design HCR
 
 ---
 
-## 📦 Outputs
+## Outputs
 
 - **IDT oPool CSV**: Split oligos with shared pool name
 - **GenBank file**: Probe + CDS annotations for viewing in ApE
@@ -55,7 +55,7 @@ The **HCR Probe Generator** is a full-featured, browser-based tool to design HCR
 
 ---
 
-## 🛠️ How to Run Locally
+## How to Run Locally
 
 ```bash
 # Clone the repo
@@ -75,7 +75,7 @@ $ streamlit run streamlit_app.py
 
 ---
 
-## 📄 License & Citation
+## License & Citation
 
 - Based on methodology from:
   - Choi et al., 2018 (HCR v3.0)
@@ -85,13 +85,13 @@ Please cite the appropriate literature and/or this repository when using the too
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Pull requests and feedback are welcome! Bug reports, UI suggestions, and feature requests can be filed via GitHub Issues.
 
 ---
 
-## 👥 Credits
+## Credits
 
 - Developed by: Lukas Anneser, Friedrich Lab
 - Original codebase adapted from: Ryan W. Null, Ozpolat Lab

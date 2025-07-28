@@ -1,6 +1,6 @@
 import pandas as pd
 import plotly.express as px
-from src.blast_tools import find_longest_orf
+from blast_tools import find_longest_orf
 import plotly.graph_objects as go
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.Seq import Seq

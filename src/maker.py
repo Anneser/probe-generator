@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from Bio.Seq import Seq
 from datetime import date
-from src.utils import maximize_probe_set
-from src.blast_tools import blast_probes_to_db, find_longest_orf
+from utils import maximize_probe_set
+from blast_tools import blast_probes_to_db, find_longest_orf
 from Bio.SeqUtils import MeltingTemp as mt
 
 
@@ -79,17 +79,16 @@ def generate_probes(positions, pause, cdna_len, min_spacing=2):
 
 def downsample_probes(probe_coords, maxprobe, num_requested, scores=None):
     """
-    Limits the number of probe pairs to a given number by downsampling uniformly,
-    maintaining even spacing and favoring higher-scoring probes when conflicts arise.
+    Uniformly downsample the list of probe coordinates to a desired number.
 
     Parameters:
         probe_coords (list of tuple): List of (start, end) probe coordinates.
         maxprobe (str): 'y' to enable limiting, 'n' to return full list.
         num_requested (int): Desired number of probes. Defaults to 33 if 0.
-        scores (list of float, optional): Composite score for each probe.
+        scores (list of float, optional): Unused here, kept for API compatibility.
 
     Returns:
-        list of tuple: Downsampled list of (start, end) probe coordinates.
+        list of tuple: Downsampled list of (start, end) coordinates.
     """
     if maxprobe != 'y' or not probe_coords:
         return probe_coords
@@ -101,38 +100,9 @@ def downsample_probes(probe_coords, maxprobe, num_requested, scores=None):
         print(f"There were fewer than {num_to_keep} pairs. No downsampling applied.")
         return probe_coords
 
-    # Default scores = flat
-    if scores is None:
-        scores = [1.0] * total_probes
-
-    # Attach scores to coordinates and sort by position
-    probes = list(zip(probe_coords, scores))
-    probes = sorted(probes, key=lambda x: x[0][0])  # sort by start coordinate
-
-    total_length = probes[-1][0][1]
-    ideal_centers = np.linspace(0, total_length, num=num_to_keep)
-
-    selected = []
-    used_indices = set()
-
-    for ideal in ideal_centers:
-        # Candidates not yet used, within a search window around the ideal center
-        candidates = []
-        for i, ((start, end), score) in enumerate(probes):
-            if i in used_indices:
-                continue
-            center = (start + end) / 2
-            dist = abs(center - ideal)
-            candidates.append((dist, -score, i))  # negative score = prioritize higher values
-
-        # Sort by closest center, then highest score
-        if candidates:
-            best = sorted(candidates)[0]
-            best_idx = best[2]
-            used_indices.add(best_idx)
-            selected.append(probes[best_idx][0])  # append (start, end)
-
-    return selected
+    # Select evenly spaced probe indices
+    indices = np.linspace(0, total_probes - 1, num=num_to_keep, dtype=int)
+    return [probe_coords[i] for i in indices]
 
 
 def format_output(probe_data, fullseq, cdna_len, amplifier_id, pause, gene_name, upinit, dninit, upspc, dnspc):
@@ -281,8 +251,8 @@ def smart_probe_selector(
 
         tm_score = 1 - (abs(tm_5p - tm_target) + abs(tm_3p - tm_target)) / 40
         gc_score = 1 - (abs(gc_5p - gc_target) + abs(gc_3p - gc_target)) / 100
-        orf_score = (1.5 if orf_start_rc <= start <= orf_end_rc else 0) + \
-                    (1.5 if orf_start_rc <= end <= orf_end_rc else 0)
+        orf_score = (1 if orf_start_rc <= start <= orf_end_rc else 0) + \
+                    (1 if orf_start_rc <= end <= orf_end_rc else 0)
         
         return tm_score + gc_score + orf_score 
 
@@ -299,6 +269,7 @@ def smart_probe_selector(
     # Attempt 1
     selected, all_scored = try_with_bounds(tm_bounds, gc_bounds)
     if len(selected) >= int(0.8 * max_count):
+        print("probe sets found with user-specified limits")
         pass
     else:
         # Attempt 2
@@ -315,7 +286,7 @@ def smart_probe_selector(
     if len(selected) < int(0.8 * max_count):
         print("Falling back to greedy selection due to low probe yield.")
         candidates = prepare_candidates()
-        candidates.sort(key=lambda x: x[2], reverse=True)
+        # candidates.sort(key=lambda x: x[2], reverse=True)
         selected = []
         last_end = -spacing
         for start, end, score in candidates:
@@ -324,10 +295,10 @@ def smart_probe_selector(
                 last_end = end
             if len(selected) >= max_count:
                 break
-        score_map = { (s, e): sc for s, e, sc in candidates }
+        score_map = {(s, e): sc for s, e, sc in candidates}
 
     else:
-        score_map = { (s, e): sc for s, e, sc in all_scored }
+        score_map = {(s, e): sc for s, e, sc in all_scored}
 
     # Optional downsampling
     if len(selected) > max_count:

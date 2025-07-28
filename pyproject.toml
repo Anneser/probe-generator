@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ProbeGenerator"
+version = "0.1.0"
+description = "streamlit app for generating HCR v3.0 probe sets"
+authors = [{ name = "Lukas Anneser", email = ""}]
+
+[tool.setuptools]
+package-dir = { "" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
